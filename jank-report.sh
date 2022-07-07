@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # Jank Report
 # by: Dan Hutson
 #################
@@ -11,64 +11,57 @@ cwd=$(pwd)
 echo What is your project files name?
 ls -ah
 echo Type one of the above options.
-read projectName
+read -r projectName
 
 #check for old and delete
-projectAlreadyExists= find . -maxdepth 1 -name $projectName
-if [ -n projectAlreadyExists ] 
+if [ -e "$projectName" ] 
 then
     echo "Project already exists. Deleting old project."
-    rm -rf $projectName
-    rm *.jpg
-    rm *.tex
-    rm *.log
+    rm -rf "$projectName"
 fi
 
 
 #check for existing zip file and unzip
 projectZip="${projectName}.zip"
-projectZipExists= find . -maxdepth 1 -name $projectZip
-if [ -n projectZipExists ] 
+if [ -f "$projectZip" ] 
 then
     echo "ZIP found."
     echo "Making new project \"$projectName\""
-    mkdir $projectName
+    mkdir "$projectName"
     echo "Creating $projectName/img/."
-    cd "${cwd}/${projectName}"
+    cd "${cwd}/${projectName}" || { echo "Project creation failed"; exit 1; }
     mkdir img 
     cp "${cwd}/$projectZip" "${cwd}/$projectName/img"
-    cd img 
+    cd img || { echo "Project creation failed"; exit 1; }
     echo "UNZIPPING"
-    unzip $projectZip
-    rm $projectZip
-    cd "${cwd}/$projectName"
+    unzip "$projectZip"
+    rm "$projectZip"
+    cd "${cwd}/$projectName" || { echo "Project creation failed"; exit 1; }
 else
-    echo "NO ZIP FOUND"
-    exit
-    #unzipFailed= true
+    echo "NO ZIP FOUND"; exit;
 fi
 
 # CREATE THE REPORT
 texFile="${projectName}.tex"
-cp ~/Documents/LaTeX\ Templates/DSP-report.tex ${texFile}
+cp ~/Documents/LaTeX_Templates/DSP-report.tex "${texFile}" || { echo "TeX template not found"; exit 1; }
 
 # get the project alias w/ user input
 echo What is your projects title?
-read projectTitle
+read -r projectTitle
 echo "Your project title is $projectTitle"
 
 # update the project title w/ alias
 # (use 'sed' command)
-sed -i "s/assignmentTitle/${projectTitle}/g" ${texFile} #> temp
+sed -i "s/assignmentTitle/${projectTitle}/g" "${texFile}" 
 #cat temp > ${texFile}
 
 # add 'img/*' to the report
-cd "${cwd}/$projectName/"
+cd "${cwd}/$projectName/" || { echo "Project creation failed"; exit 1; }
 FILES="img/*"
 for f in $FILES
 do
-    sed  "/\%Append Images Here/i \\\\\includegraphics[width=1\\\textwidth ]{$f}" ${texFile} > temp
-    cat temp > ${texFile}
+    sed  "/\%Append Images Here/i \\\\\includegraphics[width=1\\\textwidth ]{$f}" "${texFile}" > temp
+    cat temp > "${texFile}"
 done
 
 # Compile the project
