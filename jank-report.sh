@@ -1,15 +1,24 @@
 #!/bin/sh
 # Jank Report
-# by: Dan Hutson
 #################
 # Notes:
 #   - put the .zip file in the directory where you execute the script
 #   - name the project the same as the zip file
 cwd=$(pwd)
 
-# Build project directory
-echo What is your project files name?
-ls -ah
+# check for zips
+if [ ! -f *.zip ]
+then
+    { echo "No zip found in current working directory."; exit 1; }
+fi
+
+# Get author name
+echo What is your full name?
+read -r author
+
+# get project name
+echo What is your zip file\'s name?
+ls -ah *.zip 
 echo Type one of the above options.
 read -r projectName
 
@@ -20,42 +29,38 @@ then
     rm -rf "$projectName"
 fi
 
-
-#check for existing zip file and unzip
+#unzip
 projectZip="${projectName}.zip"
 if [ -f "$projectZip" ] 
 then
-    echo "ZIP found."
-    echo "Making new project \"$projectName\""
+    echo "UNZIPPING"
+    #echo "Making new project \"$projectName\""
     mkdir "$projectName"
-    echo "Creating $projectName/img/."
+    #echo "Creating $projectName/img/."
     cd "${cwd}/${projectName}" || { echo "Project creation failed"; exit 1; }
     mkdir img 
     cp "${cwd}/$projectZip" "${cwd}/$projectName/img"
     cd img || { echo "Project creation failed"; exit 1; }
-    echo "UNZIPPING"
     unzip "$projectZip"
     rm "$projectZip"
     cd "${cwd}/$projectName" || { echo "Project creation failed"; exit 1; }
 else
-    echo "NO ZIP FOUND"; exit;
+    { echo "zip not found"; exit 1; }
 fi
 
-# CREATE THE REPORT
+# get the project title
+echo What is your projects title?
+read -r projectTitle
+
+# create the report
 texFile="${projectName}.tex"
 cp ~/Documents/LaTeX_Templates/DSP-report.tex "${texFile}" || { echo "TeX template not found"; exit 1; }
 
-# get the project alias w/ user input
-echo What is your projects title?
-read -r projectTitle
-echo "Your project title is $projectTitle"
+# update the project author & title 
+sed -i "s/assignmentAuthor/${author}/g" "${texFile}" || echo "Failed to update author"
+sed -i "s/assignmentTitle/${projectTitle}/g" "${texFile}" || echo "Failed to update title"
 
-# update the project title w/ alias
-# (use 'sed' command)
-sed -i "s/assignmentTitle/${projectTitle}/g" "${texFile}" 
-#cat temp > ${texFile}
-
-# add 'img/*' to the report
+# add imgs
 cd "${cwd}/$projectName/" || { echo "Project creation failed"; exit 1; }
 FILES="img/*"
 for f in $FILES
@@ -64,8 +69,6 @@ do
     cat temp > "${texFile}"
 done
 
-# Compile the project
-pdflatex --shell-escape "${texFile}"
-
-#open the file
+# compile & open the project
+pdflatex --shell-escape "${texFile}" >> /dev/null
 okular "${projectName}.pdf" &
